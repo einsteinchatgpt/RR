@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boa Vista - Capital | PlanificaSUS Roraima</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #1e3a5f; --primary-light: #2d5a8a; --primary-dark: #0f1f33;
+            --accent: #00a86b; --accent-light: #00d68f; --gold: #d4a853;
+            --white: #ffffff; --gray-50: #f8fafc; --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0; --gray-300: #cbd5e1; --gray-600: #475569; --gray-800: #1e293b;
+            --success: #10b981; --warning: #f59e0b; --danger: #ef4444; --info: #3b82f6;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--gray-100); min-height: 100vh; color: var(--gray-800); }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+            color: var(--white); padding: 20px 40px; display: flex; justify-content: space-between;
+            align-items: center; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+        .header-left { display: flex; align-items: center; gap: 20px; }
+        .back-btn {
+            display: flex; align-items: center; gap: 8px; padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px; color: var(--white); text-decoration: none; font-size: 0.9rem; transition: all 0.3s ease;
+        }
+        .back-btn:hover { background: rgba(255, 255, 255, 0.2); }
+        .header-title { display: flex; align-items: center; gap: 15px; }
+        .header-icon {
+            width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px;
+        }
+        .header-text h1 { font-size: 1.5rem; font-weight: 700; }
+        .header-text span { font-size: 0.85rem; color: var(--gray-300); }
+        .header-right { display: flex; align-items: center; gap: 20px; }
+        .header-badge {
+            display: flex; align-items: center; gap: 8px; padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1); border-radius: 20px; font-size: 0.85rem;
+        }
+
+        .main-container { display: flex; min-height: calc(100vh - 90px); }
+        
+        .sidebar {
+            width: 320px; background: var(--white); border-right: 1px solid var(--gray-200);
+            padding: 24px; overflow-y: auto;
+        }
+        .sidebar-section { margin-bottom: 30px; }
+        .sidebar-title {
+            font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+            color: var(--gray-600); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+        }
+        .sidebar-title i { color: var(--accent); }
+        .filter-select {
+            width: 100%; padding: 12px 16px; border: 2px solid var(--gray-200); border-radius: 10px;
+            font-size: 0.9rem; font-family: 'Inter', sans-serif; background: var(--white);
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        .filter-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 168, 107, 0.1); }
+
+        .tabs-container { display: flex; gap: 8px; margin-bottom: 20px; }
+
+        .month-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .month-chip {
+            padding: 6px 12px; background: var(--gray-100); border: 1px solid var(--gray-200);
+            border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s ease;
+        }
+        .month-chip:hover { background: var(--gray-200); }
+        .month-chip.active { background: var(--accent); border-color: var(--accent); color: var(--white); }
+        .tab-btn {
+            flex: 1; padding: 12px 16px; border: 2px solid var(--gray-200); background: var(--white);
+            border-radius: 10px; font-size: 0.85rem; font-weight: 500; cursor: pointer;
+            transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .tab-btn:hover { border-color: var(--accent); }
+        .tab-btn.active { background: var(--accent); border-color: var(--accent); color: var(--white); }
+
+        .content-area { flex: 1; padding: 30px; overflow-y: auto; }
+        
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 30px; }
+        .metric-card {
+            background: var(--white); border-radius: 16px; padding: 28px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); border: 1px solid var(--gray-200); transition: all 0.3s ease;
+        }
+        .metric-card:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); }
+        .metric-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+        .metric-icon {
+            width: 50px; height: 50px; border-radius: 12px; display: flex;
+            align-items: center; justify-content: center; font-size: 22px; color: var(--white);
+        }
+        .metric-icon.blue { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+        .metric-icon.green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .metric-icon.purple { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
+        .metric-icon.orange { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .metric-icon.pink { background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); }
+        .metric-icon.teal { background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); }
+        
+        .metric-trend { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+        .metric-trend.up { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .metric-trend.down { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .metric-trend.neutral { background: rgba(107, 114, 128, 0.1); color: var(--gray-600); }
+        .metric-value { font-size: 2.5rem; font-weight: 800; color: var(--gray-800); margin-bottom: 8px; line-height: 1; }
+        .metric-label { font-size: 0.9rem; color: var(--gray-600); font-weight: 500; }
+        .metric-sublabel { font-size: 0.75rem; color: var(--gray-300); margin-top: 4px; }
+
+        .chart-container {
+            background: var(--white); border-radius: 16px; padding: 28px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); border: 1px solid var(--gray-200); margin-bottom: 30px;
+        }
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .chart-title { font-size: 1.2rem; font-weight: 700; color: var(--gray-800); }
+        .chart-subtitle { font-size: 0.85rem; color: var(--gray-600); margin-top: 4px; }
+        .chart-wrapper { height: 350px; position: relative; }
+
+        .extra-charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 30px; }
+        .extra-chart-container {
+            background: var(--white); border-radius: 16px; padding: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); border: 1px solid var(--gray-200);
+        }
+        .extra-chart-wrapper { height: 280px; position: relative; }
+
+        .prediction-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; }
+        .prediction-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 16px; padding: 24px; color: var(--white); text-align: center;
+        }
+        .prediction-period { font-size: 0.85rem; opacity: 0.8; margin-bottom: 8px; }
+        .prediction-value { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
+        .prediction-change {
+            display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px;
+            background: rgba(255, 255, 255, 0.2); border-radius: 20px; font-size: 0.8rem;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; color: var(--gray-600); }
+        .loading i { font-size: 3rem; color: var(--accent); margin-bottom: 16px; animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        @media (max-width: 1024px) {
+            .sidebar { width: 280px; }
+            .prediction-grid { grid-template-columns: 1fr; }
+            .extra-charts-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--gray-200); }
+            .header { flex-direction: column; gap: 15px; padding: 15px 20px; }
+            .cards-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i><span>Voltar</span></a>
+            <div class="header-title">
+                <div class="header-icon"><i class="fas fa-city"></i></div>
+                <div class="header-text">
+                    <h1>Boa Vista</h1>
+                    <span>Capital do Estado de Roraima</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="header-badge"><i class="fas fa-calendar-alt"></i><span id="current-date"></span></div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <div class="tabs-container">
+                    <button class="tab-btn active" data-tab="serie"><i class="fas fa-chart-line"></i>Série Histórica</button>
+                    <button class="tab-btn" data-tab="predicao"><i class="fas fa-brain"></i>Predição</button>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title"><i class="fas fa-filter"></i>Indicador</div>
+                <select id="indicador-select" class="filter-select"><option value="">Carregando...</option></select>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title"><i class="fas fa-calendar"></i>Meses</div>
+                <div class="month-chips" id="month-chips"></div>
+            </div>
+
+            <div class="sidebar-section info-box" style="background: var(--gray-50); border-radius: 12px; padding: 16px; border: 1px solid var(--gray-200);">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                    <i class="fas fa-info-circle" style="color: var(--info);"></i>
+                    <span style="font-weight: 600; font-size: 0.9rem;">Sobre os Dados</span>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--gray-600); line-height: 1.6;">
+                    Dados do monitoramento do Plano de Trabalho do PlanificaSUS para a capital Boa Vista.
+                </p>
+            </div>
+        </aside>
+
+        <main class="content-area">
+            <div id="loading" class="loading"><i class="fas fa-spinner"></i><span>Carregando dados...</span></div>
+
+            <div id="content" style="display: none;">
+                <div id="tab-serie" class="tab-content active">
+                    <div class="cards-grid" id="cards-container"></div>
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div>
+                                <h3 class="chart-title" id="chart-title">Série Histórica</h3>
+                                <p class="chart-subtitle" id="chart-subtitle">Evolução mensal do indicador selecionado</p>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper"><canvas id="main-chart"></canvas></div>
+                    </div>
+                    <div class="extra-charts-grid">
+                        <div class="extra-chart-container">
+                            <div class="chart-header">
+                                <div>
+                                    <h3 class="chart-title">Variação Mensal</h3>
+                                    <p class="chart-subtitle">Diferença entre meses consecutivos</p>
+                                </div>
+                            </div>
+                            <div class="extra-chart-wrapper"><canvas id="variation-chart"></canvas></div>
+                        </div>
+                        <div class="extra-chart-container">
+                            <div class="chart-header">
+                                <div>
+                                    <h3 class="chart-title">Distribuição</h3>
+                                    <p class="chart-subtitle">Valores por período</p>
+                                </div>
+                            </div>
+                            <div class="extra-chart-wrapper"><canvas id="bar-chart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-predicao" class="tab-content">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div>
+                                <h3 class="chart-title">Análise Preditiva</h3>
+                                <p class="chart-subtitle" id="prediction-subtitle">Projeção baseada em tendência linear</p>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper"><canvas id="prediction-chart"></canvas></div>
+                        <div class="prediction-grid" id="prediction-cards"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        Chart.register(ChartDataLabels);
+        
+        let rawData = [];
+        let headers = [];
+        let mainChart = null;
+        let predictionChart = null;
+        let variationChart = null;
+        let barChart = null;
+        let selectedMonths = new Set();
+
+        const monthOrder = {
+            'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4,
+            'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8,
+            'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 'Dezembro': 12
+        };
+
+        // Format value based on indicator type - ONLY % for Cobertura APS and Cobertura vacinal
+        function formatValue(val, indicator) {
+            // Cobertura vacinal e Percentual de cobertura estão em decimal (0.7 = 70%)
+            if (indicator.includes('Cobertura vacinal') || indicator.includes('Percentual de cobertura') || indicator.includes('Percentual de cadastros')) {
+                return (val * 100).toFixed(1) + '%';
+            }
+            // Taxas de sífilis são valores já calculados, não usar %
+            if (typeof val === 'number') {
+                if (val % 1 !== 0) {
+                    return val.toFixed(2);
+                }
+                return val.toLocaleString('pt-BR');
+            }
+            return val;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const options = { day: '2-digit', month: 'long', year: 'numeric' };
+            document.getElementById('current-date').textContent = new Date().toLocaleDateString('pt-BR', options);
+            await loadData();
+            setupEventListeners();
+        });
+
+        async function loadData() {
+            try {
+                const response = await fetch('dados.json');
+                const data = await response.json();
+                rawData = data.capital.filter(d => d.Município && d.Município.trim() !== '');
+                headers = data.headersCapital;
+
+                rawData.sort((a, b) => {
+                    if (a.Ano !== b.Ano) return a.Ano - b.Ano;
+                    return (monthOrder[a.Mês?.trim()] || 0) - (monthOrder[b.Mês?.trim()] || 0);
+                });
+
+                populateFilters();
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                document.getElementById('loading').innerHTML = `
+                    <i class="fas fa-exclamation-triangle" style="animation: none; color: var(--danger);"></i>
+                    <span>Erro ao carregar dados</span>`;
+            }
+        }
+
+        function populateFilters() {
+            const indicadorSelect = document.getElementById('indicador-select');
+            const monthChipsContainer = document.getElementById('month-chips');
+            const excludedColumns = ['UF', 'Região de Saúde', 'Município', 'Código IBGE município', 'Mês', 'Ano', 'Esfera'];
+            const indicators = headers.filter(h => !excludedColumns.includes(h));
+
+            const rateIndicators = indicators.filter(h => h.includes('Taxa') || h.includes('Percentual') || h.includes('Cobertura'));
+            const absoluteIndicators = indicators.filter(h => !h.includes('Taxa') && !h.includes('Percentual') && !h.includes('Cobertura'));
+
+            indicadorSelect.innerHTML = `
+                <option value="">Selecione um indicador</option>
+                <optgroup label="📊 Taxas e Coberturas">
+                    ${rateIndicators.map(h => `<option value="${h}">${h}</option>`).join('')}
+                </optgroup>
+                <optgroup label="📈 Valores Absolutos">
+                    ${absoluteIndicators.map(h => `<option value="${h}">${h}</option>`).join('')}
+                </optgroup>`;
+
+            // Populate month chips
+            const months = [...new Set(rawData.map(d => d.Mês?.trim()))].filter(Boolean);
+            months.sort((a, b) => (monthOrder[a] || 0) - (monthOrder[b] || 0));
+            months.forEach(m => selectedMonths.add(m));
+
+            monthChipsContainer.innerHTML = months.map(m => 
+                `<div class="month-chip active" data-month="${m}">${m.substring(0, 3)}</div>`
+            ).join('');
+
+            if (rateIndicators.length > 0) {
+                indicadorSelect.value = rateIndicators[0];
+                updateDashboard();
+            }
+        }
+
+        function setupEventListeners() {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+                    if (btn.dataset.tab === 'predicao') updatePrediction();
+                });
+            });
+
+            document.getElementById('indicador-select').addEventListener('change', updateDashboard);
+
+            // Month chips click handler
+            document.getElementById('month-chips').addEventListener('click', (e) => {
+                if (e.target.classList.contains('month-chip')) {
+                    const month = e.target.dataset.month;
+                    if (selectedMonths.has(month)) {
+                        selectedMonths.delete(month);
+                        e.target.classList.remove('active');
+                    } else {
+                        selectedMonths.add(month);
+                        e.target.classList.add('active');
+                    }
+                    updateDashboard();
+                }
+            });
+        }
+
+        function updateDashboard() {
+            const indicator = document.getElementById('indicador-select').value;
+            if (!indicator || rawData.length === 0) return;
+            updateCards(indicator);
+            updateMainChart(indicator);
+            updateExtraCharts(indicator);
+            if (document.getElementById('tab-predicao').classList.contains('active')) updatePrediction();
+        }
+
+        function getFilteredData() {
+            return rawData.filter(d => selectedMonths.has(d.Mês?.trim()));
+        }
+
+        function updateCards(indicator) {
+            const container = document.getElementById('cards-container');
+            const filteredData = getFilteredData();
+            const values = filteredData.map(d => ({
+                value: parseFloat(d[indicator]) || 0,
+                month: d.Mês?.trim(),
+                year: d.Ano
+            })).filter(d => !isNaN(d.value));
+
+            if (values.length === 0) {
+                container.innerHTML = '<p style="color: var(--gray-600);">Sem dados disponíveis.</p>';
+                return;
+            }
+
+            const latest = values[values.length - 1];
+            const previous = values.length > 1 ? values[values.length - 2] : null;
+            const allValues = values.map(v => v.value);
+            const avg = allValues.reduce((a, b) => a + b, 0) / allValues.length;
+            const max = Math.max(...allValues);
+            const min = Math.min(...allValues);
+
+            let trend = 'neutral', trendValue = 0;
+            if (previous) {
+                trendValue = ((latest.value - previous.value) / (previous.value || 1)) * 100;
+                trend = trendValue > 0 ? 'up' : trendValue < 0 ? 'down' : 'neutral';
+            }
+
+            const higherIsBetter = indicator.includes('Cobertura') || indicator.includes('cadastro');
+            const trendIcon = trend === 'up' ? 'fa-arrow-up' : trend === 'down' ? 'fa-arrow-down' : 'fa-minus';
+            const trendClass = higherIsBetter ? (trend === 'up' ? 'up' : trend === 'down' ? 'down' : 'neutral') : (trend === 'up' ? 'down' : trend === 'down' ? 'up' : 'neutral');
+
+            container.innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon blue"><i class="fas fa-chart-line"></i></div>
+                        <div class="metric-trend ${trendClass}"><i class="fas ${trendIcon}"></i>${Math.abs(trendValue).toFixed(1)}%</div>
+                    </div>
+                    <div class="metric-value">${formatValue(latest.value, indicator)}</div>
+                    <div class="metric-label">Valor Atual</div>
+                    <div class="metric-sublabel">${latest.month} ${latest.year}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-header"><div class="metric-icon green"><i class="fas fa-calculator"></i></div></div>
+                    <div class="metric-value">${formatValue(avg, indicator)}</div>
+                    <div class="metric-label">Média do Período</div>
+                    <div class="metric-sublabel">${values.length} meses analisados</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-header"><div class="metric-icon purple"><i class="fas fa-arrow-up"></i></div></div>
+                    <div class="metric-value">${formatValue(max, indicator)}</div>
+                    <div class="metric-label">Valor Máximo</div>
+                    <div class="metric-sublabel">Maior valor registrado</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-header"><div class="metric-icon orange"><i class="fas fa-arrow-down"></i></div></div>
+                    <div class="metric-value">${formatValue(min, indicator)}</div>
+                    <div class="metric-label">Valor Mínimo</div>
+                    <div class="metric-sublabel">Menor valor registrado</div>
+                </div>`;
+        }
+
+        function updateMainChart(indicator) {
+            const ctx = document.getElementById('main-chart').getContext('2d');
+            const filteredData = getFilteredData();
+            const chartData = filteredData.map(d => ({
+                label: `${d.Mês?.trim()?.substring(0, 3)}/${d.Ano}`,
+                value: parseFloat(d[indicator]) || 0
+            }));
+
+            document.getElementById('chart-title').textContent = indicator;
+            document.getElementById('chart-subtitle').textContent = 'Evolução mensal - Boa Vista';
+
+            if (mainChart) mainChart.destroy();
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+            gradient.addColorStop(0, 'rgba(0, 168, 107, 0.3)');
+            gradient.addColorStop(1, 'rgba(0, 168, 107, 0)');
+
+            mainChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.map(d => d.label),
+                    datasets: [{
+                        label: indicator,
+                        data: chartData.map(d => d.value),
+                        borderColor: '#00a86b',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 6,
+                        pointBackgroundColor: '#00a86b',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 58, 95, 0.95)',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: false,
+                            callbacks: {
+                                label: (ctx) => formatValue(ctx.raw, indicator)
+                            }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            offset: 4,
+                            font: { size: 11, weight: 'bold' },
+                            color: '#1e3a5f',
+                            formatter: (value) => formatValue(value, indicator)
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { font: { size: 11 } } }
+                    }
+                }
+            });
+        }
+
+        function updateExtraCharts(indicator) {
+            // Variation Chart
+            const filteredData = getFilteredData();
+            const variationCtx = document.getElementById('variation-chart').getContext('2d');
+            const values = filteredData.map(d => parseFloat(d[indicator]) || 0);
+            const variations = values.slice(1).map((v, i) => v - values[i]);
+            const labels = filteredData.slice(1).map(d => `${d.Mês?.trim()?.substring(0, 3)}/${d.Ano}`);
+
+            if (variationChart) variationChart.destroy();
+            variationChart = new Chart(variationCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Variação',
+                        data: variations,
+                        backgroundColor: variations.map(v => v >= 0 ? 'rgba(16, 185, 129, 0.7)' : 'rgba(239, 68, 68, 0.7)'),
+                        borderColor: variations.map(v => v >= 0 ? '#10b981' : '#ef4444'),
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            anchor: 'end',
+                            align: (ctx) => ctx.dataset.data[ctx.dataIndex] >= 0 ? 'top' : 'bottom',
+                            font: { size: 10, weight: 'bold' },
+                            color: '#1e3a5f',
+                            formatter: (value) => value >= 0 ? '+' + formatValue(value, indicator) : formatValue(value, indicator)
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                        y: { grid: { color: 'rgba(0, 0, 0, 0.05)' } }
+                    }
+                }
+            });
+
+            // Bar Chart
+            const barCtx = document.getElementById('bar-chart').getContext('2d');
+            const barLabels = filteredData.map(d => `${d.Mês?.trim()?.substring(0, 3)}/${d.Ano}`);
+
+            if (barChart) barChart.destroy();
+            barChart = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: barLabels,
+                    datasets: [{
+                        label: indicator,
+                        data: values,
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderColor: '#3b82f6',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            font: { size: 10, weight: 'bold' },
+                            color: '#1e3a5f',
+                            formatter: (value) => formatValue(value, indicator)
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } }
+                    }
+                }
+            });
+        }
+
+        function updatePrediction() {
+            const indicator = document.getElementById('indicador-select').value;
+            if (!indicator) return;
+
+            const ctx = document.getElementById('prediction-chart').getContext('2d');
+            const filteredData = getFilteredData();
+            const values = filteredData.map((d, i) => ({
+                x: i,
+                y: parseFloat(d[indicator]) || 0,
+                label: `${d.Mês?.trim()?.substring(0, 3)}/${d.Ano}`
+            }));
+
+            const n = values.length;
+            const sumX = values.reduce((a, b) => a + b.x, 0);
+            const sumY = values.reduce((a, b) => a + b.y, 0);
+            const sumXY = values.reduce((a, b) => a + b.x * b.y, 0);
+            const sumX2 = values.reduce((a, b) => a + b.x * b.x, 0);
+
+            const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+
+            const predictions = [];
+            const futureMonths = ['Próximo Mês', '+6 Meses', '+12 Meses'];
+            const futureOffsets = [1, 6, 12];
+
+            futureOffsets.forEach((offset, i) => {
+                const predictedValue = slope * (n - 1 + offset) + intercept;
+                predictions.push({
+                    period: futureMonths[i],
+                    value: Math.max(0, predictedValue),
+                    change: ((predictedValue - values[n - 1].y) / (values[n - 1].y || 1)) * 100
+                });
+            });
+
+            document.getElementById('prediction-cards').innerHTML = predictions.map(p => `
+                <div class="prediction-card">
+                    <div class="prediction-period">${p.period}</div>
+                    <div class="prediction-value">${formatValue(p.value, indicator)}</div>
+                    <div class="prediction-change">
+                        <i class="fas fa-${p.change >= 0 ? 'arrow-up' : 'arrow-down'}"></i>
+                        ${Math.abs(p.change).toFixed(1)}% vs atual
+                    </div>
+                </div>`).join('');
+
+            if (predictionChart) predictionChart.destroy();
+
+            const allLabels = [...values.map(v => v.label), ...futureMonths];
+            const actualData = values.map(v => v.y);
+            const trendData = values.map((v, i) => slope * i + intercept);
+            const predictionData = [...Array(n).fill(null), ...predictions.map(p => p.value)];
+            const trendExtended = [...trendData, ...futureOffsets.map(o => slope * (n - 1 + o) + intercept)];
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+            gradient.addColorStop(0, 'rgba(0, 168, 107, 0.2)');
+            gradient.addColorStop(1, 'rgba(0, 168, 107, 0)');
+
+            predictionChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: allLabels,
+                    datasets: [
+                        {
+                            label: 'Dados Reais',
+                            data: [...actualData, ...Array(3).fill(null)],
+                            borderColor: '#00a86b',
+                            backgroundColor: gradient,
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointBackgroundColor: '#00a86b'
+                        },
+                        {
+                            label: 'Tendência',
+                            data: trendExtended,
+                            borderColor: '#3b82f6',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Predição',
+                            data: predictionData,
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 8,
+                            pointBackgroundColor: '#f59e0b',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { usePointStyle: true, padding: 20 } },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 58, 95, 0.95)',
+                            callbacks: { label: (ctx) => ctx.dataset.label + ': ' + formatValue(ctx.raw, indicator) }
+                        },
+                        datalabels: {
+                            display: (ctx) => ctx.datasetIndex !== 1,
+                            anchor: 'end',
+                            align: 'top',
+                            font: { size: 10, weight: 'bold' },
+                            color: '#1e3a5f',
+                            formatter: (value) => value !== null ? formatValue(value, indicator) : ''
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } }
+                    }
+                }
+            });
+
+            document.getElementById('prediction-subtitle').textContent = `Projeção para ${indicator}`;
+        }
+    </script>
+</body>
+</html>
