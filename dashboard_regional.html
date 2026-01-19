@@ -389,7 +389,7 @@
                 const response = await fetch('dados.json');
                 const data = await response.json();
                 rawData = data.centroNorte.filter(d => 
-                    d.Município && d.Município.trim() !== '' && d.Município !== 'REGIONAL'
+                    d.Município && d.Município.trim() !== ''
                 );
                 headers = data.headersCentroNorte;
 
