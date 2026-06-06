@@ -1,23 +1,3 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSEI - Saúde Indígena</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div id="root"></div>
-    <script src="data.js"></script>
-    <script type="text/babel">
 const { useState, useEffect, useRef } = React;
 
 if (typeof ChartDataLabels !== 'undefined') {
@@ -183,7 +163,7 @@ const LandingPage = ({ onEnter }) => {
                     </div>
                     <div className="w-px h-12 bg-white/30"></div>
                     <div className="text-center">
-                        <div className="text-3xl font-bold">{DSEI_DATA.meses.length}</div>
+                        <div className="text-3xl font-bold">12</div>
                         <div className="text-sm">Meses de Dados</div>
                     </div>
                 </div>
@@ -416,8 +396,10 @@ const TrendAnalysis = ({ data, indicatorName, polo, indicator, startMonth, endMo
     const unit = isMortalidade ? '' : '%';
     
     // Calcular próximo mês após o período selecionado
-    const endMonthIdx = DSEI_DATA.meses.indexOf(endMonth);
-    const nextMonth = DSEI_DATA.meses[endMonthIdx + 1] || 'Próximo período';
+    const mesesOrdem = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const endMonthIdx = mesesOrdem.indexOf(endMonth);
+    const nextMonth = mesesOrdem[(endMonthIdx + 1) % 12] || 'Próximo';
     
     const [showMethodology, setShowMethodology] = useState(false);
     
@@ -579,8 +561,8 @@ const ComparisonTable = ({ indicator, data }) => {
 const Dashboard = ({ onBack }) => {
     const [activeIndicator, setActiveIndicator] = useState('baixoPeso');
     const [selectedPolo, setSelectedPolo] = useState('Sena Madureira');
-    const [startMonth, setStartMonth] = useState(DSEI_DATA.meses[0]);
-    const [endMonth, setEndMonth] = useState(DSEI_DATA.meses[DSEI_DATA.meses.length - 1]);
+    const [startMonth, setStartMonth] = useState('Janeiro');
+    const [endMonth, setEndMonth] = useState('Novembro');
     const [viewMode, setViewMode] = useState('acumulado'); // 'mensal' ou 'acumulado'
     const [compareMode, setCompareMode] = useState(false);
 
@@ -824,6 +806,3 @@ const App = () => {
 };
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-    </script>
-</body>
-</html>
