@@ -89,8 +89,14 @@ O sistema utiliza regressão linear simples para projetar valores futuros:
 
 ## 📝 Notas
 
-- Os dados são carregados do arquivo `dados.json`
-- Para atualizar os dados, modifique a planilha `RR_Dados.xlsx` e execute o script de conversão
+- Os dados são carregados do arquivo `dados.js` (variável `DADOS_RR`), por isso o `index.html` e os dashboards abrem com duplo clique, sem servidor
+- Para atualizar os dados: substitua a planilha `RR_Dados.xlsx` (abas `Capital` e `Centro Norte`) e rode o conversor:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File convert_xlsx.ps1
+```
+
+  Ele regenera `dados.js` e `dados.json` a partir do `.xlsx` sem precisar de Node/Python/Excel.
 - O sistema é independente do projeto GDI-APS
 
 ---

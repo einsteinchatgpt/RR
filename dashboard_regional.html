@@ -292,8 +292,8 @@
                         <div class="extra-chart-container">
                             <div class="chart-header">
                                 <div>
-                                    <h3 class="chart-title">Média Regional</h3>
-                                    <p class="chart-subtitle">Evolução da média dos municípios</p>
+                                    <h3 class="chart-title">Regional</h3>
+                                    <p class="chart-subtitle">Evolução do indicador na região (consolidado)</p>
                                 </div>
                             </div>
                             <div class="extra-chart-wrapper"><canvas id="avg-chart"></canvas></div>
@@ -338,6 +338,7 @@
         </main>
     </div>
 
+    <script src="dados.js"></script>
     <script>
         Chart.register(ChartDataLabels);
         
@@ -361,8 +362,18 @@
             '#8b5cf6', '#ec4899', '#14b8a6', '#6366f1'
         ];
 
+        // Converte o valor da célula em número. Retorna null quando está em branco
+        // (null, undefined, string vazia ou não numérico) para NÃO contabilizar como 0.
+        function parseVal(raw) {
+            if (raw === null || raw === undefined) return null;
+            if (typeof raw === 'string' && raw.trim() === '') return null;
+            const v = parseFloat(raw);
+            return isNaN(v) ? null : v;
+        }
+
         // Format value based on indicator type - ONLY % for Cobertura APS and Cobertura vacinal
         function formatValue(val, indicator) {
+            if (val === null || val === undefined || (typeof val === 'number' && isNaN(val))) return '-';
             // Cobertura vacinal e Percentual de cobertura estão em decimal (0.7 = 70%)
             if (indicator.includes('Cobertura vacinal') || indicator.includes('Percentual de cobertura') || indicator.includes('Percentual de cadastros')) {
                 return (val * 100).toFixed(1) + '%';
@@ -386,12 +397,11 @@
 
         async function loadData() {
             try {
-                const response = await fetch('dados.json');
-                const data = await response.json();
+                const data = DADOS_RR;
                 rawData = data.centroNorte.filter(d => 
-                    d.Município && d.Município.trim() !== ''
+                    d.Município && d.Município.trim() !== '' && d.Ano && d.Mês
                 );
-                headers = data.headersCentroNorte;
+                headers = [...new Set(data.headersCentroNorte)];
 
                 rawData.sort((a, b) => {
                     if (a.Ano !== b.Ano) return a.Ano - b.Ano;
@@ -438,8 +448,9 @@
                 `<div class="month-chip active" data-month="${m}">${m.substring(0, 3)}</div>`
             ).join('');
 
-            // Populate municipality chips
-            const municipalities = [...new Set(rawData.map(d => d.Município))].filter(Boolean).sort();
+            // Populate municipality chips (a linha REGIONAL é o agregado da região,
+            // tratado separadamente da análise por município)
+            const municipalities = [...new Set(rawData.map(d => d.Município))].filter(m => m && !isRegional(m)).sort();
             municipalities.forEach(m => selectedMunicipalities.add(m));
 
             chipsContainer.innerHTML = municipalities.map(m => 
@@ -505,6 +516,11 @@
             if (document.getElementById('tab-predicao').classList.contains('active')) updatePrediction();
         }
 
+        // A linha "REGIONAL" é o consolidado da região, separado dos municípios.
+        function isRegional(name) {
+            return (name || '').trim().toUpperCase() === 'REGIONAL';
+        }
+
         function getFilteredData() {
             return rawData.filter(d => 
                 selectedMunicipalities.has(d.Município) && 
@@ -512,17 +528,34 @@
             );
         }
 
+        // Registros consolidados da região (linha REGIONAL), respeitando os meses selecionados.
+        function getRegionalData() {
+            return rawData.filter(d => isRegional(d.Município) && selectedMonths.has(d.Mês?.trim()));
+        }
+
+        // Valor regional consolidado para um indicador em um mês (e ano, se informado).
+        // Retorna o primeiro valor não nulo encontrado; null se inexistente.
+        function getRegionalValue(indicator, month, year) {
+            let recs = getRegionalData().filter(d => d.Mês?.trim() === month);
+            if (year !== undefined && year !== null) recs = recs.filter(d => d.Ano === parseInt(year));
+            for (const r of recs) {
+                const v = parseVal(r[indicator]);
+                if (v !== null) return v;
+            }
+            return null;
+        }
+
         function updateCards(indicator) {
             const container = document.getElementById('cards-container');
             const filteredData = getFilteredData();
 
-            // Get latest month
-            const months = [...new Set(filteredData.map(d => d.Mês?.trim()))];
+            // Mês mais recente que possui dados para o indicador
+            const months = [...new Set(filteredData.filter(d => parseVal(d[indicator]) !== null).map(d => d.Mês?.trim()))];
             months.sort((a, b) => (monthOrder[b] || 0) - (monthOrder[a] || 0));
             const targetMonth = months[0];
 
-            const currentData = filteredData.filter(d => d.Mês?.trim() === targetMonth);
-            const values = currentData.map(d => parseFloat(d[indicator]) || 0);
+            const currentData = filteredData.filter(d => d.Mês?.trim() === targetMonth && parseVal(d[indicator]) !== null);
+            const values = currentData.map(d => parseVal(d[indicator]));
             
             if (values.length === 0) {
                 container.innerHTML = '<p style="color: var(--gray-600);">Sem dados disponíveis.</p>';
@@ -533,8 +566,16 @@
             const max = Math.max(...values);
             const min = Math.min(...values);
 
+            // Valor regional consolidado (linha REGIONAL); fallback para média dos municípios
+            const regionalVal = getRegionalValue(indicator, targetMonth, currentData[0]?.Ano);
+            const regionalCardValue = regionalVal !== null ? regionalVal : avg;
+            const regionalCardLabel = regionalVal !== null ? 'Regional (consolidado)' : 'Média Regional';
+            const regionalCardSub = regionalVal !== null
+                ? `${targetMonth} - valor da região`
+                : `${targetMonth} - média de ${selectedMunicipalities.size} municípios`;
+
             const sortedData = [...currentData].sort((a, b) => 
-                (parseFloat(b[indicator]) || 0) - (parseFloat(a[indicator]) || 0)
+                parseVal(b[indicator]) - parseVal(a[indicator])
             );
             const best = sortedData[0];
             const worst = sortedData[sortedData.length - 1];
@@ -542,9 +583,9 @@
             container.innerHTML = `
                 <div class="metric-card">
                     <div class="metric-header"><div class="metric-icon blue"><i class="fas fa-chart-bar"></i></div></div>
-                    <div class="metric-value">${formatValue(avg, indicator)}</div>
-                    <div class="metric-label">Média Regional</div>
-                    <div class="metric-sublabel">${targetMonth} - ${selectedMunicipalities.size} municípios</div>
+                    <div class="metric-value">${formatValue(regionalCardValue, indicator)}</div>
+                    <div class="metric-label">${regionalCardLabel}</div>
+                    <div class="metric-sublabel">${regionalCardSub}</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-header"><div class="metric-icon green"><i class="fas fa-trophy"></i></div></div>
@@ -584,7 +625,7 @@
                 const values = periods.map(period => {
                     const [month, year] = period.split('/');
                     const record = munData.find(d => d.Mês?.trim() === month && d.Ano === parseInt(year));
-                    return record ? parseFloat(record[indicator]) || 0 : null;
+                    return record ? parseVal(record[indicator]) : null;
                 });
 
                 return {
@@ -634,26 +675,27 @@
             const tbody = document.getElementById('ranking-body');
             const filteredData = getFilteredData();
 
-            const months = [...new Set(filteredData.map(d => d.Mês?.trim()))];
+            const months = [...new Set(filteredData.filter(d => parseVal(d[indicator]) !== null).map(d => d.Mês?.trim()))];
             months.sort((a, b) => (monthOrder[a] || 0) - (monthOrder[b] || 0));
             const targetMonth = months[months.length - 1];
             const previousMonth = months.length > 1 ? months[months.length - 2] : null;
 
-            const currentData = filteredData.filter(d => d.Mês?.trim() === targetMonth);
+            const currentData = filteredData.filter(d => d.Mês?.trim() === targetMonth && parseVal(d[indicator]) !== null);
             const previousData = previousMonth ? filteredData.filter(d => d.Mês?.trim() === previousMonth) : [];
 
             const higherIsBetter = indicator.includes('Cobertura') || indicator.includes('cadastro');
 
             const sortedData = [...currentData].sort((a, b) => {
-                const valA = parseFloat(a[indicator]) || 0;
-                const valB = parseFloat(b[indicator]) || 0;
+                const valA = parseVal(a[indicator]);
+                const valB = parseVal(b[indicator]);
                 return higherIsBetter ? valB - valA : valA - valB;
             });
 
             tbody.innerHTML = sortedData.map((d, i) => {
-                const currentValue = parseFloat(d[indicator]) || 0;
+                const currentValue = parseVal(d[indicator]);
                 const prevRecord = previousData.find(p => p.Município === d.Município);
-                const prevValue = prevRecord ? parseFloat(prevRecord[indicator]) || 0 : currentValue;
+                const prevVal = prevRecord ? parseVal(prevRecord[indicator]) : null;
+                const prevValue = prevVal !== null ? prevVal : currentValue;
                 const change = currentValue - prevValue;
                 const changePercent = prevValue !== 0 ? ((change / prevValue) * 100) : 0;
 
@@ -683,14 +725,14 @@
         function updateExtraCharts(indicator) {
             const filteredData = getFilteredData();
 
-            // Get latest month for comparison
-            const months = [...new Set(filteredData.map(d => d.Mês?.trim()))];
+            // Mês mais recente com dados para o indicador
+            const months = [...new Set(filteredData.filter(d => parseVal(d[indicator]) !== null).map(d => d.Mês?.trim()))];
             months.sort((a, b) => (monthOrder[b] || 0) - (monthOrder[a] || 0));
             const targetMonth = months[0];
 
-            const currentData = filteredData.filter(d => d.Mês?.trim() === targetMonth);
+            const currentData = filteredData.filter(d => d.Mês?.trim() === targetMonth && parseVal(d[indicator]) !== null);
             const sortedData = [...currentData].sort((a, b) => 
-                (parseFloat(b[indicator]) || 0) - (parseFloat(a[indicator]) || 0)
+                parseVal(b[indicator]) - parseVal(a[indicator])
             );
 
             // Comparison Chart
@@ -703,7 +745,7 @@
                     labels: sortedData.map(d => d.Município),
                     datasets: [{
                         label: indicator,
-                        data: sortedData.map(d => parseFloat(d[indicator]) || 0),
+                        data: sortedData.map(d => parseVal(d[indicator])),
                         backgroundColor: sortedData.map((_, i) => municipalityColors[i % municipalityColors.length] + 'CC'),
                         borderColor: sortedData.map((_, i) => municipalityColors[i % municipalityColors.length]),
                         borderWidth: 1,
@@ -741,13 +783,17 @@
                 return (monthOrder[monthA] || 0) - (monthOrder[monthB] || 0);
             });
 
+            // Usa o consolidado da região (linha REGIONAL); fallback p/ média dos municípios
+            let usingRegional = false;
             const avgValues = periods.map(period => {
                 const [month, year] = period.split('/');
+                const regVal = getRegionalValue(indicator, month, year);
+                if (regVal !== null) { usingRegional = true; return regVal; }
                 const periodData = filteredData.filter(d => 
                     d.Mês?.trim() === month && d.Ano === parseInt(year)
                 );
-                const values = periodData.map(d => parseFloat(d[indicator]) || 0);
-                return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+                const values = periodData.map(d => parseVal(d[indicator])).filter(v => v !== null);
+                return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : null;
             });
 
             if (avgChart) avgChart.destroy();
@@ -761,7 +807,7 @@
                 data: {
                     labels: periods.map(p => p.substring(0, 3) + '/' + p.split('/')[1]),
                     datasets: [{
-                        label: 'Média Regional',
+                        label: usingRegional ? 'Regional (consolidado)' : 'Média Regional',
                         data: avgValues,
                         borderColor: '#8b5cf6',
                         backgroundColor: gradient,
@@ -808,16 +854,34 @@
                 return (monthOrder[monthA] || 0) - (monthOrder[monthB] || 0);
             });
 
-            const regionalAverages = periods.map(period => {
+            // Série regional: usa a linha REGIONAL; fallback p/ média dos municípios
+            const periodPoints = periods.map(period => {
                 const [month, year] = period.split('/');
-                const periodData = filteredData.filter(d => 
-                    d.Mês?.trim() === month && d.Ano === parseInt(year)
-                );
-                const values = periodData.map(d => parseFloat(d[indicator]) || 0);
-                return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
-            });
+                const regVal = getRegionalValue(indicator, month, year);
+                let val = regVal;
+                if (val === null) {
+                    const periodData = filteredData.filter(d => 
+                        d.Mês?.trim() === month && d.Ano === parseInt(year)
+                    );
+                    const values = periodData.map(d => parseVal(d[indicator])).filter(v => v !== null);
+                    val = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : null;
+                }
+                return {
+                    label: period.substring(0, 3) + '/' + period.split('/')[1],
+                    avg: val
+                };
+            }).filter(p => p.avg !== null);
 
+            const regionalAverages = periodPoints.map(p => p.avg);
             const n = regionalAverages.length;
+            if (n < 2) {
+                document.getElementById('prediction-cards').innerHTML =
+                    '<p style="color: var(--gray-600);">Dados insuficientes para predição (mínimo de 2 meses com dados).</p>';
+                if (predictionChart) { predictionChart.destroy(); predictionChart = null; }
+                document.getElementById('prediction-table-body').innerHTML = '';
+                document.getElementById('prediction-subtitle').textContent = `Projeção regional para ${indicator}`;
+                return;
+            }
             const sumX = regionalAverages.reduce((a, _, i) => a + i, 0);
             const sumY = regionalAverages.reduce((a, b) => a + b, 0);
             const sumXY = regionalAverages.reduce((a, b, i) => a + i * b, 0);
@@ -851,7 +915,7 @@
 
             if (predictionChart) predictionChart.destroy();
 
-            const allLabels = [...periods.map(p => p.substring(0, 3) + '/' + p.split('/')[1]), ...futureMonths];
+            const allLabels = [...periodPoints.map(p => p.label), ...futureMonths];
             const trendData = regionalAverages.map((_, i) => slope * i + intercept);
             const predictionData = [...Array(n).fill(null), ...predictions.map(p => p.value)];
             const trendExtended = [...trendData, ...futureOffsets.map(o => slope * (n - 1 + o) + intercept)];
@@ -937,7 +1001,7 @@
                     return (monthOrder[a.Mês?.trim()] || 0) - (monthOrder[b.Mês?.trim()] || 0);
                 });
 
-                const values = munData.map(d => parseFloat(d[indicator]) || 0);
+                const values = munData.map(d => parseVal(d[indicator])).filter(v => v !== null);
                 const n = values.length;
 
                 if (n < 2) {

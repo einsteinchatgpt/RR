@@ -522,6 +522,7 @@
                     <span class="feature-tag">Cobertura Vacinal</span>
                     <span class="feature-tag">Sífilis Congênita</span>
                     <span class="feature-tag">Cobertura APS</span>
+                    <span class="feature-tag">Testes Pré-Natal</span>
                 </div>
                 <div class="card-arrow">
                     <i class="fas fa-arrow-right"></i>
@@ -546,7 +547,7 @@
                 </div>
                 <div class="card-features">
                     <span class="feature-tag">Ranking Municipal</span>
-                    <span class="feature-tag">Comparativo</span>
+                    <span class="feature-tag">Sífilis Gestante</span>
                     <span class="feature-tag">Predição</span>
                 </div>
                 <div class="card-arrow">
@@ -591,33 +592,31 @@
         <p>&copy; 2025 PlanificaSUS - Roraima. Sistema de Monitoramento de Indicadores de Saúde.</p>
     </footer>
 
+    <script src="dados.js"></script>
     <script>
         // Set current date
         const options = { day: '2-digit', month: 'long', year: 'numeric' };
         document.getElementById('current-date').textContent = new Date().toLocaleDateString('pt-BR', options);
 
         // Load data stats
-        fetch('dados.json')
-            .then(response => response.json())
-            .then(data => {
-                // Capital stats
-                const capitalData = data.capital.filter(d => d.Município);
-                const capitalMeses = [...new Set(capitalData.map(d => d.Mês))].length;
-                document.getElementById('capital-meses').textContent = capitalMeses;
-                
-                // Count indicators (numeric columns after Ano)
-                const capitalIndicadores = data.headersCapital.filter(h => 
-                    !['UF', 'Região de Saúde', 'Município', 'Código IBGE município', 'Mês', 'Ano', 'Esfera'].includes(h)
-                ).length;
-                document.getElementById('capital-indicadores').textContent = capitalIndicadores;
+        try {
+            const data = DADOS_RR;
+            // Capital stats - filter valid records
+            const capitalData = data.capital.filter(d => d.Município && d.Ano && d.Mês);
+            const capitalMeses = [...new Set(capitalData.map(d => d.Mês?.trim()).filter(Boolean))].length;
+            document.getElementById('capital-meses').textContent = capitalMeses;
 
-                // Regional stats
-                const regionalIndicadores = data.headersCentroNorte.filter(h => 
-                    !['UF', 'Região de Saúde', 'Município', 'Código IBGE município', 'Mês', 'Ano', 'Esfera'].includes(h)
-                ).length;
-                document.getElementById('regional-indicadores').textContent = regionalIndicadores;
-            })
-            .catch(err => console.error('Erro ao carregar dados:', err));
+            // Count unique indicators (exclude metadata columns)
+            const excludedCols = ['UF', 'Região de Saúde', 'Município', 'Código IBGE município', 'Mês', 'Ano', 'Esfera'];
+            const capitalIndicadores = [...new Set(data.headersCapital)].filter(h => !excludedCols.includes(h)).length;
+            document.getElementById('capital-indicadores').textContent = capitalIndicadores;
+
+            // Regional stats
+            const regionalIndicadores = [...new Set(data.headersCentroNorte)].filter(h => !excludedCols.includes(h)).length;
+            document.getElementById('regional-indicadores').textContent = regionalIndicadores;
+        } catch (err) {
+            console.error('Erro ao carregar dados:', err);
+        }
     </script>
 </body>
 </html>

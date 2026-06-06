@@ -1,4 +1,4 @@
-{
+var DADOS_RR = {
     "centroNorte":  [
                         {
                             "UF":  "RR",
@@ -7574,4 +7574,4 @@
                                "Testes 3º trimestre",
                                "Esfera"
                            ]
-}
+};

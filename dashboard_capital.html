@@ -256,6 +256,7 @@
         </main>
     </div>
 
+    <script src="dados.js"></script>
     <script>
         Chart.register(ChartDataLabels);
         
@@ -273,8 +274,18 @@
             'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 'Dezembro': 12
         };
 
+        // Converte o valor da célula em número. Retorna null quando está em branco
+        // (null, undefined, string vazia ou não numérico) para NÃO contabilizar como 0.
+        function parseVal(raw) {
+            if (raw === null || raw === undefined) return null;
+            if (typeof raw === 'string' && raw.trim() === '') return null;
+            const v = parseFloat(raw);
+            return isNaN(v) ? null : v;
+        }
+
         // Format value based on indicator type - ONLY % for Cobertura APS and Cobertura vacinal
         function formatValue(val, indicator) {
+            if (val === null || val === undefined || (typeof val === 'number' && isNaN(val))) return '-';
             // Cobertura vacinal e Percentual de cobertura estão em decimal (0.7 = 70%)
             if (indicator.includes('Cobertura vacinal') || indicator.includes('Percentual de cobertura') || indicator.includes('Percentual de cadastros')) {
                 return (val * 100).toFixed(1) + '%';
@@ -298,10 +309,9 @@
 
         async function loadData() {
             try {
-                const response = await fetch('dados.json');
-                const data = await response.json();
-                rawData = data.capital.filter(d => d.Município && d.Município.trim() !== '');
-                headers = data.headersCapital;
+                const data = DADOS_RR;
+                rawData = data.capital.filter(d => d.Município && d.Município.trim() !== '' && d.Ano && d.Mês);
+                headers = [...new Set(data.headersCapital)];
 
                 rawData.sort((a, b) => {
                     if (a.Ano !== b.Ano) return a.Ano - b.Ano;
@@ -398,10 +408,10 @@
             const container = document.getElementById('cards-container');
             const filteredData = getFilteredData();
             const values = filteredData.map(d => ({
-                value: parseFloat(d[indicator]) || 0,
+                value: parseVal(d[indicator]),
                 month: d.Mês?.trim(),
                 year: d.Ano
-            })).filter(d => !isNaN(d.value));
+            })).filter(d => d.value !== null);
 
             if (values.length === 0) {
                 container.innerHTML = '<p style="color: var(--gray-600);">Sem dados disponíveis.</p>';
@@ -460,8 +470,8 @@
             const filteredData = getFilteredData();
             const chartData = filteredData.map(d => ({
                 label: `${d.Mês?.trim()?.substring(0, 3)}/${d.Ano}`,
-                value: parseFloat(d[indicator]) || 0
-            }));
+                value: parseVal(d[indicator])
+            })).filter(d => d.value !== null);
 
             document.getElementById('chart-title').textContent = indicator;
             document.getElementById('chart-subtitle').textContent = 'Evolução mensal - Boa Vista';
@@ -528,9 +538,13 @@
             // Variation Chart
             const filteredData = getFilteredData();
             const variationCtx = document.getElementById('variation-chart').getContext('2d');
-            const values = filteredData.map(d => parseFloat(d[indicator]) || 0);
+            const points = filteredData.map(d => ({
+                label: `${d.Mês?.trim()?.substring(0, 3)}/${d.Ano}`,
+                value: parseVal(d[indicator])
+            })).filter(p => p.value !== null);
+            const values = points.map(p => p.value);
             const variations = values.slice(1).map((v, i) => v - values[i]);
-            const labels = filteredData.slice(1).map(d => `${d.Mês?.trim()?.substring(0, 3)}/${d.Ano}`);
+            const labels = points.slice(1).map(p => p.label);
 
             if (variationChart) variationChart.destroy();
             variationChart = new Chart(variationCtx, {
@@ -568,7 +582,7 @@
 
             // Bar Chart
             const barCtx = document.getElementById('bar-chart').getContext('2d');
-            const barLabels = filteredData.map(d => `${d.Mês?.trim()?.substring(0, 3)}/${d.Ano}`);
+            const barLabels = points.map(p => p.label);
 
             if (barChart) barChart.destroy();
             barChart = new Chart(barCtx, {
@@ -611,13 +625,19 @@
 
             const ctx = document.getElementById('prediction-chart').getContext('2d');
             const filteredData = getFilteredData();
-            const values = filteredData.map((d, i) => ({
-                x: i,
-                y: parseFloat(d[indicator]) || 0,
+            const values = filteredData.map(d => ({
+                y: parseVal(d[indicator]),
                 label: `${d.Mês?.trim()?.substring(0, 3)}/${d.Ano}`
-            }));
+            })).filter(p => p.y !== null).map((p, i) => ({ x: i, y: p.y, label: p.label }));
 
             const n = values.length;
+            if (n < 2) {
+                document.getElementById('prediction-cards').innerHTML =
+                    '<p style="color: var(--gray-600);">Dados insuficientes para predição (mínimo de 2 meses com dados).</p>';
+                if (predictionChart) { predictionChart.destroy(); predictionChart = null; }
+                document.getElementById('prediction-subtitle').textContent = `Projeção para ${indicator}`;
+                return;
+            }
             const sumX = values.reduce((a, b) => a + b.x, 0);
             const sumY = values.reduce((a, b) => a + b.y, 0);
             const sumXY = values.reduce((a, b) => a + b.x * b.y, 0);
